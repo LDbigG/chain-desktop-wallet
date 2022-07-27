@@ -183,8 +183,6 @@ export interface onChainData {
   delegatorAddress?: string;
   recipientAddress?: string;
   validatorAddress?: string;
-  proposalId?: string;
-  option?: string;
 }
 
 export interface Amount {
