@@ -21,21 +21,6 @@ import { useRefCallback } from '../../../hooks/useRefCallback';
 
 const remote = window.require('@electron/remote');
 
-enum RPCErrorCode {
-  USER_REJECTED_REQUEST = 4001,
-  UNAUTHORIZED = 4100,
-  UNSUPPORTED_METHOD = 4200,
-  DISCONNECTED = 4900,
-  CHAIN_DISCONNECTED = 4901,
-  REQUESTED_CHAIN_NOT_ADDED = 4902,
-} 
-
-interface RPCError {
-  code: RPCErrorCode;
-  message: string;
-}
-
-
 export type ConfirmTransactionSuccessCallback = (info: {
   decryptedPhrase: string;
   gasPrice: BigNumber;
@@ -139,7 +124,7 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
     );
   };
 
-  const executeJavScript = useRefCallback(
+  const executeJavScript = useCallback(
     async (script: string) => {
       if (!isDOMReady) {
         setQueuedMessages([...queuedMessages, script]);
@@ -147,12 +132,13 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
       }
 
       execute(script);
-    }
+    },
+    [webview, isDOMReady, queuedMessages],
   );
 
   const injectDomReadyScript = useCallback(
     (chainConfig?: EVMChainConfig) => {
-      executeJavScript.current(`
+      executeJavScript(`
     window.onbeforeunload = function() {
       return;
     }
@@ -168,19 +154,19 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
     [webview, chainConfigs, asset],
   );
 
-  const sendError = (id: number, error: RPCError) => {
-    executeJavScript.current(`
-        window.ethereum.sendError(${id}, ${JSON.stringify(error)})
+  const sendError = (id: number, error: string) => {
+    executeJavScript(`
+        window.ethereum.sendError(${id}, "${error}")
     `);
   };
 
   const sendResponse = (id: number, response?: string) => {
     if (response) {
-      executeJavScript.current(`
+      executeJavScript(`
           window.ethereum.sendResponse(${id}, "${response}")
       `);
     } else {
-      executeJavScript.current(`
+      executeJavScript(`
           window.ethereum.sendResponse(${id})
       `);
     }
@@ -192,13 +178,13 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
 
   const sendResponses = (id: number, responses: string[]) => {
     const script = responses.map(r => `'${r}'`).join(',');
-    executeJavScript.current(`
+    executeJavScript(`
         window.ethereum.sendResponse(${id}, [${script}])
     `);
   };
 
   const handleRequestAccounts = useRefCallback((id: number, address: string) => {
-    executeJavScript.current(
+    executeJavScript(
       `
           window.ethereum.setAddress("${address}");
         `,
@@ -239,7 +225,7 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
 
         sendResponse(event.id, result);
       } catch (error) {
-        sendError(event.id, { code: RPCErrorCode.USER_REJECTED_REQUEST, message: 'Transaction failed' });
+        sendError(event.id, 'Transaction failed');
       }
 
       onFinishTransaction();
@@ -274,7 +260,7 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
         sendResponse(event.id, result);
         onFinishTransaction();
       } catch (error) {
-        sendError(event.id, { code: RPCErrorCode.USER_REJECTED_REQUEST, message: (error as any).toString() });
+        sendError(event.id, (error as any) as string);
         onFinishTransaction((error as any).toString());
       }
     },
@@ -286,7 +272,7 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
         const sig = await EvmTransactionSigner.signPersonalMessage(data, passphrase);
         sendResponse(eventId, sig);
       } catch (error) {
-        sendError(eventId, { code: RPCErrorCode.USER_REJECTED_REQUEST, message: (error as any).toString() });
+        sendError(eventId, (error as any) as string);
       }
     },
   );
@@ -297,7 +283,7 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
         const sig = await EvmTransactionSigner.signTypedDataV4(event.object.raw, passphrase);
         sendResponse(event.id, sig);
       } catch (error) {
-        sendError(event.id, { code: RPCErrorCode.USER_REJECTED_REQUEST, message: (error as any).toString() });
+        sendError(event.id, (error as any) as string);
       }
     },
   );
@@ -327,7 +313,7 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
               handleRequestAccounts.current(event.id, address);
             },
             reason => {
-              sendError(event.id, { code: RPCErrorCode.USER_REJECTED_REQUEST, message: reason });
+              sendError(event.id, reason);
             },
           );
           break;
@@ -375,7 +361,7 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
                   );
                 },
                 reason => {
-                  sendError(event.id, { code: RPCErrorCode.USER_REJECTED_REQUEST, message: reason });
+                  sendError(event.id, reason);
                 },
               );
             } else {
@@ -390,7 +376,7 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
                   );
                 },
                 reason => {
-                  sendError(event.id, { code: RPCErrorCode.USER_REJECTED_REQUEST, message: reason });
+                  sendError(event.id, reason);
                 },
               );
             }
@@ -401,12 +387,10 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
             event,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             _ => {
-
-              sendError(event.id, { code: RPCErrorCode.USER_REJECTED_REQUEST, message: 'Not implemented' });
+              sendError(event.id, 'Not implemented');
             },
             reason => {
-
-              sendError(event.id, { code: RPCErrorCode.USER_REJECTED_REQUEST, message: reason });
+              sendError(event.id, reason);
             },
           );
           break;
@@ -417,7 +401,7 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
               handleSignMessage.current(event.id, event.object.data, info.decryptedPhrase);
             },
             reason => {
-              sendError(event.id, { code: RPCErrorCode.USER_REJECTED_REQUEST, message: reason });
+              sendError(event.id, reason);
             },
           );
           break;
@@ -428,7 +412,7 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
               handleSignTypedMessage.current(event, info.decryptedPhrase);
             },
             reason => {
-              sendError(event.id, { code: RPCErrorCode.USER_REJECTED_REQUEST, message: reason });
+              sendError(event.id, reason);
             },
           );
           break;
@@ -448,7 +432,7 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
                 );
             },
             reason => {
-              sendError(event.id, { code: RPCErrorCode.USER_REJECTED_REQUEST, message: reason });
+              sendError(event.id, reason);
             },
           );
           break;
@@ -457,7 +441,7 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
             event,
             () => {},
             reason => {
-              sendError(event.id, { code: RPCErrorCode.USER_REJECTED_REQUEST, message: reason });
+              sendError(event.id, reason);
             },
           );
           break;
@@ -521,7 +505,7 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
                 sendResponse(event.id);
               },
               reason => {
-                sendError(event.id, { code: RPCErrorCode.USER_REJECTED_REQUEST, message: reason });
+                sendError(event.id, reason);
               },
             );
           }
@@ -529,13 +513,7 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
         case 'switchEthereumChain':
           {
             const foundConfig = chainConfigs.find(c => isHexEqual(c.chainId, event.object.chainId));
-
-            if (!foundConfig) {
-              sendError(event.id, { code: RPCErrorCode.REQUESTED_CHAIN_NOT_ADDED, message: 'Chain not found' });
-              return;
-            }
-
-            if (selectedChain.chainId !== event.object.chainId) {
+            if (foundConfig && selectedChain.chainId !== event.object.chainId) {
               props.onRequestSwitchEthereumChain(
                 {
                   prev: selectedChain,
@@ -551,7 +529,7 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
                 },
               );
             } else {
-              sendResponse(event.id, foundConfig.chainId);
+              sendError(event.id, 'Chain not found');
             }
           }
           break;
@@ -607,7 +585,7 @@ export const useIPCProvider = (props: IUseIPCProviderProps) => {
   }, [webview, selectedChain]);
 
   const updateChainConfig = (config: EVMChainConfig, emitChanged = false) => {
-    executeJavScript.current(
+    executeJavScript(
       `
             var config = {
                 address: '${asset?.address}',

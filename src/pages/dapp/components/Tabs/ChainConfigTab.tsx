@@ -250,12 +250,13 @@ const ChainConfigTab = () => {
           </Form.Item>
           <Form.Item
             label={t('dapp.chainConfig.blockExplorer')}
-            initialValue={editingChainConfig.blockExplorerUrls ? editingChainConfig.blockExplorerUrls[0] : ''}
+            initialValue={editingChainConfig.blockExplorerUrls[0]}
             name={ChainConfigFormKeys.explorerURL}
             hasFeedback
             validateFirst
             rules={[
               {
+                required: true,
                 type: 'url',
                 message: `${t('dapp.chainConfig.blockExplorer')} ${t('general.required')}`,
               },
