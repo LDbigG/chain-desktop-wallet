@@ -334,7 +334,7 @@ const CRC20TokenList = ({
               setIsTokenApprovalLoading(false);
               setTxEvent(undefined);
               setSelectedData(undefined);
-              message.success(t('settings.revoke.success'));
+              message.success('Revoke success');
 
               onRevokeSuccess();
             } catch (error) {
