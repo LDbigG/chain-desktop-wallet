@@ -1,24 +1,20 @@
 import React from 'react';
-import { Tooltip, Progress, Typography } from 'antd';
+import { Tooltip, Progress } from 'antd';
 import './ValidatorPowerPercentBar.less';
-import { VALIDATOR_VOTING_POWER_THRESHOLD } from '../../config/StaticConfig';
 
 interface ValidatorPowerPercentBarProps {
   percentExcludeCurrent: number;
   percentIncludeCurrent: number;
 }
-
-const { Text } = Typography;
 const ValidatorPowerPercentBar: React.FC<ValidatorPowerPercentBarProps> = props => {
   const { percentExcludeCurrent, percentIncludeCurrent } = props;
   const rounded = new Number(percentIncludeCurrent).toPrecision(4);
   const sub = new Number(percentIncludeCurrent - percentExcludeCurrent).toPrecision(4);
-  const color = new Number(percentIncludeCurrent - percentExcludeCurrent) < Math.round(VALIDATOR_VOTING_POWER_THRESHOLD * 100) ? 'success' : 'danger';
 
   return (
     <Tooltip title={`${rounded}%`}>
       <div style={{ display: 'flex', minWidth: '150px' }}>
-        <Text type={color} style={{ display: 'inline-block', marginRight: '8px' }}>{sub}%</Text>
+        <span style={{ display: 'inline-block', marginRight: '8px' }}>{sub}%</span>
         <Progress
           percent={percentIncludeCurrent}
           success={{ percent: percentExcludeCurrent }}

@@ -220,10 +220,8 @@ export interface ValidatorInfo {
   commissionMaxRate: string;
   commissionMaxChangeRate: string;
   minSelfDelegation: string;
-  totalActiveBlock: number;
-  totalRecentActiveBlocks: number;
   totalSignedBlock: number;
-  totalRecentSignedBlocks: number;
+  totalActiveBlock: number;
   impreciseUpTime: string;
   votedGovProposal: number;
   powerPercentage: string;
